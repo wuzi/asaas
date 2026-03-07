@@ -7,8 +7,8 @@ A Rust SDK for integrating with the payment services provided by [Asaas](https:/
 
 ```rs
 use asaas::{
-    ClientBuilder, Environment, LeanPaymentCreateRequest, PaymentDiscount, PaymentFine,
-    PaymentInterest,
+    BillingType, ClientBuilder, Environment, LeanPaymentCreateRequest, PaymentDiscount,
+    PaymentFine, PaymentInterest,
 };
 
 let client = ClientBuilder::new()
@@ -19,7 +19,7 @@ let client = ClientBuilder::new()
 
 let payload = LeanPaymentCreateRequest {
     customer: "cus_G7Dvo4iphUNk".into(),
-    billing_type: "BOLETO".into(),
+    billing_type: BillingType::Boleto,
     value: 129.9,
     due_date: "2017-06-10".into(),
     description: Some("Pedido 056984".into()),

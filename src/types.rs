@@ -1,12 +1,21 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum BillingType {
+    Undefined,
+    Boleto,
+    CreditCard,
+    Pix,
+}
+
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LeanPaymentCreateRequest {
     pub customer: String,
-    pub billing_type: String,
+    pub billing_type: BillingType,
     pub value: f64,
     pub due_date: String,
     pub description: Option<String>,
@@ -86,7 +95,7 @@ pub struct LeanPaymentResponse {
     pub original_value: Option<f64>,
     pub interest_value: Option<f64>,
     pub description: Option<String>,
-    pub billing_type: Option<String>,
+    pub billing_type: Option<BillingType>,
     pub can_be_paid_after_due_date: Option<bool>,
     pub confirmed_date: Option<String>,
     pub pix_transaction_id: Option<String>,

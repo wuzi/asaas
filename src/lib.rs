@@ -8,6 +8,6 @@ pub use client::{Client, ClientBuilder};
 pub use environment::{Endpoints, Environment, PRODUCTION_ENDPOINTS, SANDBOX_ENDPOINTS};
 pub use error::Error;
 pub use types::{
-    LeanPaymentCreateRequest, LeanPaymentResponse, PaymentCallback, PaymentDiscount, PaymentFine,
-    PaymentInterest, PaymentSplitItem, PaymentValueField,
+    BillingType, LeanPaymentCreateRequest, LeanPaymentResponse, PaymentCallback, PaymentDiscount,
+    PaymentFine, PaymentInterest, PaymentSplitItem, PaymentValueField,
 };
