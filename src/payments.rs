@@ -3,7 +3,8 @@ use reqwest::Method;
 use crate::client::Client;
 use crate::error::Error;
 use crate::types::{
-    IdentificationFieldResponse, LeanPaymentCreateRequest, LeanPaymentResponse, PixQrCodeResponse,
+    IdentificationFieldResponse, LeanPaymentCreateRequest, LeanPaymentResponse,
+    PaymentStatusResponse, PixQrCodeResponse,
 };
 
 impl Client {
@@ -28,6 +29,14 @@ impl Client {
         payment_id: &str,
     ) -> Result<IdentificationFieldResponse, Error> {
         let path = format!("/v3/payments/{payment_id}/identificationField");
+        self.send_typed::<(), _>(Method::GET, &path, None).await
+    }
+
+    pub async fn get_payment_status(
+        &self,
+        payment_id: &str,
+    ) -> Result<PaymentStatusResponse, Error> {
+        let path = format!("/v3/payments/{payment_id}/status");
         self.send_typed::<(), _>(Method::GET, &path, None).await
     }
 }

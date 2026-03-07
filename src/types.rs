@@ -10,6 +10,25 @@ pub enum BillingType {
     Pix,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PaymentStatus {
+    Pending,
+    Received,
+    Confirmed,
+    Overdue,
+    Refunded,
+    ReceivedInCash,
+    RefundRequested,
+    RefundInProgress,
+    ChargebackRequested,
+    ChargebackDispute,
+    AwaitingChargebackReversal,
+    DunningRequested,
+    DunningReceived,
+    AwaitingRiskAnalysis,
+}
+
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -167,7 +186,7 @@ pub struct LeanPaymentResponse {
     pub can_be_paid_after_due_date: Option<bool>,
     pub confirmed_date: Option<String>,
     pub pix_transaction_id: Option<String>,
-    pub status: Option<String>,
+    pub status: Option<PaymentStatus>,
     pub due_date: Option<String>,
     pub original_due_date: Option<String>,
     pub payment_date: Option<String>,
@@ -224,6 +243,12 @@ pub struct IdentificationFieldResponse {
     pub identification_field: String,
     pub nosso_numero: Option<String>,
     pub bar_code: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentStatusResponse {
+    pub status: PaymentStatus,
 }
 
 #[skip_serializing_none]
