@@ -1,0 +1,48 @@
+# asaas
+
+A Rust SDK for integrating with the payment services provided by [Asaas](https://docs.asaas.com/). This library provides strongly-typed bindings for the Asaas API.
+
+
+# Quick Start
+
+```rs
+use asaas::{
+    ClientBuilder, Environment, LeanPaymentCreateRequest, PaymentDiscount, PaymentFine,
+    PaymentInterest,
+};
+
+let client = ClientBuilder::new()
+    .api_key("your_api_key")
+    .user_agent("application name")
+    .environment(Environment::Sandbox)
+    .build()?;
+
+let payload = LeanPaymentCreateRequest {
+    customer: "cus_G7Dvo4iphUNk".into(),
+    billing_type: "BOLETO".into(),
+    value: 129.9,
+    due_date: "2017-06-10".into(),
+    description: Some("Pedido 056984".into()),
+    days_after_due_date_to_registration_cancellation: Some(1),
+    external_reference: Some("056984".into()),
+    installment_count: None,
+    total_value: None,
+    installment_value: None,
+    discount: Some(PaymentDiscount {
+        value: 10.0,
+        due_date_limit_days: Some(0),
+        kind: Some("PERCENTAGE".into()),
+    }),
+    interest: Some(PaymentInterest { value: None }),
+    fine: Some(PaymentFine {
+        value: None,
+        kind: Some("FIXED".into()),
+    }),
+    postal_service: Some(false),
+    split: None,
+    callback: None,
+    pix_automatic_authorization_id: Some("89060430-aceb-447c-a981-07ee15daf00c".into()),
+};
+
+let response = client.create_lean_payment(&payload).await?;
+```
