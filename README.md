@@ -2,7 +2,6 @@
 
 A Rust SDK for integrating with the payment services provided by [Asaas](https://docs.asaas.com/). This library provides strongly-typed bindings for the Asaas API.
 
-
 # Quick Start
 
 ```rs
@@ -46,3 +45,12 @@ let payload = LeanPaymentCreateRequest {
 
 let response = client.create_lean_payment(&payload).await?;
 ```
+
+# Implemented Endpoints
+
+- `POST /v3/customers` -> `client.create_customer(...)`
+- `POST /v3/lean/payments` -> `client.create_lean_payment(...)`
+- `GET /v3/payments/{id}/pixQrCode` -> `client.get_payment_pix_qr_code(...)`
+- `GET /v3/payments/{id}/identificationField` -> `client.get_payment_identification_field(...)`
+- `GET /v3/installments/{id}/payments?offset={offset}` -> `client.list_installment_payments(...)`
+- `GET /v3/installments/{id}/paymentBook` -> `client.get_installment_payment_book_pdf(...)`

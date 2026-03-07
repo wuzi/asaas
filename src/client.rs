@@ -92,18 +92,34 @@ impl Client {
         Req: Serialize + Sync,
         Res: DeserializeOwned,
     {
+        self.send_typed_with_accept(method, path, "application/json", payload)
+            .await
+    }
+
+    pub(crate) async fn send_typed_with_accept<Req, Res>(
+        &self,
+        method: Method,
+        path: &str,
+        accept: &str,
+        payload: Option<&Req>,
+    ) -> Result<Res, Error>
+    where
+        Req: Serialize + Sync,
+        Res: DeserializeOwned,
+    {
         let url = format!("{}{path}", self.endpoints().api_base_url);
 
         let mut request = self
             .http
             .request(method, &url)
-            .header(ACCEPT, HeaderValue::from_static("application/json"))
-            .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
+            .header(ACCEPT, accept)
             .header(USER_AGENT, &self.user_agent)
             .header("access_token", &self.api_key);
 
         if let Some(json_payload) = payload {
-            request = request.json(json_payload);
+            request = request
+                .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
+                .json(json_payload);
         }
 
         let response = request.send().await?;
@@ -119,5 +135,36 @@ impl Client {
         }
 
         Ok(serde_json::from_str(&body)?)
+    }
+
+    pub(crate) async fn send_bytes(
+        &self,
+        method: Method,
+        path: &str,
+        accept: &str,
+    ) -> Result<Vec<u8>, Error> {
+        let url = format!("{}{path}", self.endpoints().api_base_url);
+
+        let response = self
+            .http
+            .request(method, &url)
+            .header(ACCEPT, accept)
+            .header(USER_AGENT, &self.user_agent)
+            .header("access_token", &self.api_key)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::RequestFailed { status, body });
+        }
+
+        let bytes = response.bytes().await?;
+        if bytes.is_empty() {
+            return Err(Error::EmptyResponse);
+        }
+
+        Ok(bytes.to_vec())
     }
 }
