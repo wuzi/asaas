@@ -63,7 +63,7 @@ pub struct PaymentFine {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PaymentSplitItem {
-    pub wallet_id: Option<String>,
+    pub wallet_id: String,
     pub fixed_value: Option<f64>,
     pub percentual_value: Option<f64>,
     pub total_fixed_value: Option<f64>,
@@ -75,7 +75,7 @@ pub struct PaymentSplitItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PaymentCallback {
-    pub success_url: Option<String>,
+    pub success_url: String,
     pub auto_redirect: Option<bool>,
 }
 
