@@ -40,7 +40,7 @@ pub struct LeanPaymentCreateRequest {
     pub description: Option<String>,
     pub days_after_due_date_to_registration_cancellation: Option<i32>,
     pub external_reference: Option<String>,
-    pub installment_count: Option<i32>,
+    pub installment_count: Option<usize>,
     pub total_value: Option<f64>,
     pub installment_value: Option<f64>,
     pub discount: Option<PaymentDiscount>,
