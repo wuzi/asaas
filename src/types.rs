@@ -192,7 +192,7 @@ pub struct LeanPaymentResponse {
     pub payment_date: Option<String>,
     #[serde(alias = "clientPaymentDate")]
     pub customer_payment_date: Option<String>,
-    pub installment_number: Option<i32>,
+    pub installment_number: Option<usize>,
     pub invoice_url: Option<String>,
     pub invoice_number: Option<String>,
     pub external_reference: Option<String>,
