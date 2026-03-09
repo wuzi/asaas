@@ -254,6 +254,35 @@ pub struct PaymentStatusResponse {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct BillingInfoPix {
+    pub encoded_image: String,
+    pub payload: String,
+    pub expiration_date: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BillingInfoBankSlip {
+    pub identification_field: String,
+    pub nosso_numero: String,
+    pub bar_code: String,
+    pub days_after_due_date_to_registration_cancellation: Option<i32>,
+    pub bank_slip_url: String,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BillingInfoResponse {
+    pub pix: Option<BillingInfoPix>,
+    pub credit_card: Option<serde_json::Value>,
+    pub bank_slip: Option<BillingInfoBankSlip>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InstallmentPaymentsListResponse {
     pub object: String,
     pub has_more: bool,
