@@ -219,6 +219,14 @@ pub struct LeanPaymentResponse {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LeanPaymentDeleteResponse {
+    pub deleted: bool,
+    pub id: String,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PaymentValueField {
     pub value: f64,
     #[serde(rename = "type")]

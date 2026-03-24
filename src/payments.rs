@@ -4,7 +4,7 @@ use crate::client::Client;
 use crate::error::Error;
 use crate::types::{
     BillingInfoResponse, IdentificationFieldResponse, LeanPaymentCreateRequest,
-    LeanPaymentResponse, PaymentStatusResponse, PixQrCodeResponse,
+    LeanPaymentDeleteResponse, LeanPaymentResponse, PaymentStatusResponse, PixQrCodeResponse,
 };
 
 impl Client {
@@ -13,6 +13,15 @@ impl Client {
         payload: &LeanPaymentCreateRequest,
     ) -> Result<LeanPaymentResponse, Error> {
         self.send_typed(Method::POST, "/v3/lean/payments", Some(payload))
+            .await
+    }
+
+    pub async fn delete_payment(
+        &self,
+        payment_id: &str,
+    ) -> Result<LeanPaymentDeleteResponse, Error> {
+        let path = format!("/v3/lean/payments/{payment_id}");
+        self.send_typed::<LeanPaymentDeleteResponse, _>(Method::DELETE, &path, None)
             .await
     }
 

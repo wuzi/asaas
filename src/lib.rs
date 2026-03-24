@@ -12,7 +12,7 @@ pub use error::Error;
 pub use types::{
     BillingInfoBankSlip, BillingInfoPix, BillingInfoResponse, BillingType, CreateCustomerRequest,
     CustomerResponse, IdentificationFieldResponse, InstallmentPaymentsListResponse,
-    LeanPaymentCreateRequest, LeanPaymentResponse, PaymentCallback, PaymentDiscount, PaymentFine,
-    PaymentInterest, PaymentSplitItem, PaymentStatus, PaymentStatusResponse, PaymentValueField,
-    PixQrCodeResponse,
+    LeanPaymentCreateRequest, LeanPaymentDeleteResponse, LeanPaymentResponse, PaymentCallback,
+    PaymentDiscount, PaymentFine, PaymentInterest, PaymentSplitItem, PaymentStatus,
+    PaymentStatusResponse, PaymentValueField, PixQrCodeResponse,
 };
