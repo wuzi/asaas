@@ -55,6 +55,24 @@ pub struct LeanPaymentCreateRequest {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PaymentUpdateRequest {
+    pub billing_type: BillingType,
+    pub value: f64,
+    pub due_date: String,
+    pub description: Option<String>,
+    pub days_after_due_date_to_registration_cancellation: Option<i32>,
+    pub external_reference: Option<String>,
+    pub discount: Option<PaymentDiscount>,
+    pub interest: Option<PaymentInterest>,
+    pub fine: Option<PaymentFine>,
+    pub postal_service: Option<bool>,
+    pub split: Option<Vec<PaymentSplitItem>>,
+    pub callback: Option<PaymentCallback>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateCustomerRequest {
     pub name: String,
     pub cpf_cnpj: String,

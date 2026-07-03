@@ -14,5 +14,5 @@ pub use types::{
     CustomerResponse, IdentificationFieldResponse, InstallmentPaymentsListResponse,
     LeanPaymentCreateRequest, LeanPaymentDeleteResponse, LeanPaymentResponse, PaymentCallback,
     PaymentDiscount, PaymentFine, PaymentInterest, PaymentSplitItem, PaymentStatus,
-    PaymentStatusResponse, PaymentValueField, PixQrCodeResponse,
+    PaymentStatusResponse, PaymentUpdateRequest, PaymentValueField, PixQrCodeResponse,
 };

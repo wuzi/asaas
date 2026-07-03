@@ -50,6 +50,7 @@ let response = client.create_lean_payment(&payload).await?;
 
 - `POST /v3/customers` -> `client.create_customer(...)`
 - `POST /v3/lean/payments` -> `client.create_lean_payment(...)`
+- `PUT /v3/payments/{id}` -> `client.update_payment(...)`
 - `GET /v3/payments/{id}/pixQrCode` -> `client.get_payment_pix_qr_code(...)`
 - `GET /v3/payments/{id}/identificationField` -> `client.get_payment_identification_field(...)`
 - `GET /v3/payments/{id}/billingInfo` -> `client.get_payment_billing_info(...)`
