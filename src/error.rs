@@ -1,5 +1,18 @@
 use std::fmt::{Display, Formatter};
 
+use serde::Deserialize;
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct ApiError {
+    pub code: String,
+    pub description: String,
+}
+
+#[derive(Deserialize)]
+struct ApiErrorResponse {
+    errors: Vec<ApiError>,
+}
+
 #[derive(Debug)]
 pub enum Error {
     BuilderMissingField(&'static str),
@@ -10,6 +23,18 @@ pub enum Error {
         status: reqwest::StatusCode,
         body: String,
     },
+}
+
+impl Error {
+    pub fn api_errors(&self) -> Option<Vec<ApiError>> {
+        let Self::RequestFailed { body, .. } = self else {
+            return None;
+        };
+
+        serde_json::from_str::<ApiErrorResponse>(body)
+            .ok()
+            .map(|response| response.errors)
+    }
 }
 
 impl Display for Error {
@@ -47,5 +72,28 @@ impl std::error::Error for Error {
             Self::Json(error) => Some(error),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exposes_structured_errors_from_failed_requests() {
+        let error = Error::RequestFailed {
+            status: reqwest::StatusCode::BAD_REQUEST,
+            body: r#"{"errors":[{"code":"invalid_action","description":"Esta cobrança não pode mais ser paga."}]}"#
+                .to_string(),
+        };
+
+        let errors = error.api_errors().expect("structured Asaas errors");
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].code, "invalid_action");
+        assert_eq!(
+            errors[0].description,
+            "Esta cobrança não pode mais ser paga."
+        );
     }
 }

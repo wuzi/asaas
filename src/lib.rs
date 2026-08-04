@@ -8,7 +8,7 @@ pub mod types;
 
 pub use client::{Client, ClientBuilder};
 pub use environment::{Endpoints, Environment, PRODUCTION_ENDPOINTS, SANDBOX_ENDPOINTS};
-pub use error::Error;
+pub use error::{ApiError, Error};
 pub use types::{
     BillingInfoBankSlip, BillingInfoPix, BillingInfoResponse, BillingType, CreateCustomerRequest,
     CustomerResponse, IdentificationFieldResponse, InstallmentPaymentsListResponse,
