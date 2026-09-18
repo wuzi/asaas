@@ -4,7 +4,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::environment::{Endpoints, Environment};
-use crate::error::Error;
+use crate::error::{Error, LifecycleError};
 
 pub struct Client {
     pub(crate) api_key: String,
@@ -137,6 +137,49 @@ impl Client {
         Ok(serde_json::from_str(&body)?)
     }
 
+    pub(crate) async fn send_lifecycle_typed<Res>(
+        &self,
+        method: Method,
+        path: &str,
+    ) -> Result<Res, LifecycleError>
+    where
+        Res: DeserializeOwned,
+    {
+        let url = format!("{}{path}", self.endpoints().api_base_url);
+        let response = self
+            .http
+            .request(method, &url)
+            .header(ACCEPT, "application/json")
+            .header(USER_AGENT, &self.user_agent)
+            .header("access_token", &self.api_key)
+            .send()
+            .await?;
+
+        let status = response.status();
+        let rate_limit_reset_seconds = response
+            .headers()
+            .get("RateLimit-Reset")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse().ok());
+        let body = response.text().await?;
+
+        if !status.is_success() {
+            return Err(LifecycleError::Response {
+                status,
+                body,
+                rate_limit_reset_seconds,
+                decode_error: None,
+            });
+        }
+
+        serde_json::from_str(&body).map_err(|decode_error| LifecycleError::Response {
+            status,
+            body,
+            rate_limit_reset_seconds,
+            decode_error: Some(decode_error),
+        })
+    }
+
     pub(crate) async fn send_bytes(
         &self,
         method: Method,
@@ -167,4 +210,25 @@ impl Client {
 
         Ok(bytes.to_vec())
     }
+}
+
+pub(crate) fn encode_url_component(value: &str) -> String {
+    value
+        .bytes()
+        .map(|byte| {
+            if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+                char::from(byte).to_string()
+            } else {
+                format!("%{byte:02X}")
+            }
+        })
+        .collect()
+}
+
+pub(crate) fn push_query(path: &mut String, has_query: &mut bool, name: &str, value: &str) {
+    path.push(if *has_query { '&' } else { '?' });
+    *has_query = true;
+    path.push_str(name);
+    path.push('=');
+    path.push_str(&encode_url_component(value));
 }

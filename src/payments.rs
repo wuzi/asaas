@@ -1,11 +1,13 @@
 use reqwest::Method;
 
 use crate::client::Client;
-use crate::error::Error;
+use crate::client::{encode_url_component, push_query};
+use crate::error::{Error, LifecycleError};
 use crate::types::{
     BillingInfoResponse, IdentificationFieldResponse, LeanPaymentCreateRequest,
-    LeanPaymentDeleteResponse, LeanPaymentResponse, PaymentStatusResponse, PaymentUpdateRequest,
-    PixQrCodeResponse,
+    LeanPaymentDeleteResponse, LeanPaymentResponse, LifecyclePaymentCancellationResponse,
+    LifecyclePaymentListRequest, LifecyclePaymentListResponse, LifecyclePaymentResponse,
+    PaymentStatusResponse, PaymentUpdateRequest, PixQrCodeResponse,
 };
 
 impl Client {
@@ -65,6 +67,45 @@ impl Client {
     ) -> Result<BillingInfoResponse, Error> {
         let path = format!("/v3/payments/{payment_id}/billingInfo");
         self.send_typed::<(), _>(Method::GET, &path, None).await
+    }
+
+    pub async fn list_lifecycle_payments(
+        &self,
+        request: &LifecyclePaymentListRequest,
+    ) -> Result<LifecyclePaymentListResponse, LifecycleError> {
+        let mut path = "/v3/payments".to_string();
+        let mut has_query = false;
+        if let Some(value) = request.offset {
+            push_query(&mut path, &mut has_query, "offset", &value.to_string());
+        }
+        if let Some(value) = request.limit {
+            push_query(&mut path, &mut has_query, "limit", &value.to_string());
+        }
+        if let Some(value) = request.customer.as_deref() {
+            push_query(&mut path, &mut has_query, "customer", value);
+        }
+        if let Some(value) = request.external_reference.as_deref() {
+            push_query(&mut path, &mut has_query, "externalReference", value);
+        }
+        self.send_lifecycle_typed(Method::GET, &path).await
+    }
+
+    pub async fn get_lifecycle_payment(
+        &self,
+        payment_id: &str,
+    ) -> Result<LifecyclePaymentResponse, LifecycleError> {
+        let payment_id = encode_url_component(payment_id);
+        self.send_lifecycle_typed(Method::GET, &format!("/v3/payments/{payment_id}"))
+            .await
+    }
+
+    pub async fn cancel_lifecycle_payment(
+        &self,
+        payment_id: &str,
+    ) -> Result<LifecyclePaymentCancellationResponse, LifecycleError> {
+        let payment_id = encode_url_component(payment_id);
+        self.send_lifecycle_typed(Method::DELETE, &format!("/v3/payments/{payment_id}"))
+            .await
     }
 }
 

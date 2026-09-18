@@ -318,6 +318,111 @@ pub struct InstallmentPaymentsListResponse {
     pub data: Vec<LeanPaymentResponse>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LifecyclePaymentListRequest {
+    pub offset: Option<u64>,
+    pub limit: Option<u64>,
+    pub customer: Option<String>,
+    pub external_reference: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CustomerListRequest {
+    pub offset: Option<u64>,
+    pub limit: Option<u64>,
+    pub cpf_cnpj: Option<String>,
+    pub external_reference: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LifecycleInstallmentPaymentListRequest {
+    pub offset: Option<u64>,
+    pub limit: Option<u64>,
+}
+
+/// Exact-decimal payment shape used by lifecycle reconciliation.
+///
+/// Native status and billing type values remain strings so newly introduced
+/// Asaas values do not make observations fail to deserialize.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecyclePaymentResponse {
+    pub id: String,
+    pub customer: String,
+    pub external_reference: Option<String>,
+    pub status: String,
+    pub billing_type: String,
+    pub value: serde_json::Number,
+    pub original_value: Option<serde_json::Number>,
+    pub due_date: String,
+    pub deleted: Option<bool>,
+    pub installment: Option<String>,
+    pub installment_number: Option<u32>,
+    #[serde(default)]
+    pub split: Vec<LifecyclePaymentSplitResponse>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecyclePaymentSplitResponse {
+    pub id: Option<String>,
+    pub wallet_id: Option<String>,
+    pub fixed_value: Option<serde_json::Number>,
+    pub percentual_value: Option<serde_json::Number>,
+    pub total_value: Option<serde_json::Number>,
+    pub cancellation_reason: Option<String>,
+    pub status: Option<String>,
+    pub external_reference: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecyclePaymentListResponse {
+    pub object: String,
+    pub has_more: bool,
+    pub total_count: u64,
+    pub limit: u64,
+    pub offset: u64,
+    pub data: Vec<LifecyclePaymentResponse>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomerListResponse {
+    pub object: String,
+    pub has_more: bool,
+    pub total_count: u64,
+    pub limit: u64,
+    pub offset: u64,
+    pub data: Vec<CustomerResponse>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecycleInstallmentResponse {
+    pub id: String,
+    pub value: Option<serde_json::Number>,
+    pub net_value: Option<serde_json::Number>,
+    pub payment_value: Option<serde_json::Number>,
+    pub installment_count: Option<u32>,
+    pub billing_type: Option<String>,
+    pub payment_date: Option<String>,
+    pub description: Option<String>,
+    pub expiration_day: Option<u32>,
+    pub date_created: Option<String>,
+    pub customer: Option<String>,
+    pub payment_link: Option<String>,
+    pub deleted: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecyclePaymentCancellationResponse {
+    pub deleted: bool,
+    pub id: String,
+}
+
 /// Full payment observation. Monetary JSON tokens never pass through binary floats.
 /// Native strings deliberately preserve future provider statuses and billing types.
 #[derive(Debug, Clone, serde::Deserialize)]
