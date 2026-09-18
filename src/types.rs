@@ -317,3 +317,34 @@ pub struct InstallmentPaymentsListResponse {
     pub offset: u64,
     pub data: Vec<LeanPaymentResponse>,
 }
+
+/// Full payment observation. Monetary JSON tokens never pass through binary floats.
+/// Native strings deliberately preserve future provider statuses and billing types.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentResponse {
+    pub id: String,
+    pub status: String,
+    pub billing_type: String,
+    pub value: Option<serde_json::Number>,
+    pub original_value: Option<serde_json::Number>,
+    pub net_value: Option<serde_json::Number>,
+    pub payment_date: Option<String>,
+    pub client_payment_date: Option<String>,
+    pub installment: Option<String>,
+    pub installment_number: Option<u32>,
+}
+
+/// Authenticated account wallets from the public `/v3/wallets/` endpoint.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WalletsResponse {
+    pub has_more: bool,
+    pub total_count: usize,
+    pub data: Vec<WalletResponse>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct WalletResponse {
+    pub id: String,
+}

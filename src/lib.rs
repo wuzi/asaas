@@ -16,3 +16,5 @@ pub use types::{
     PaymentDiscount, PaymentFine, PaymentInterest, PaymentSplitItem, PaymentStatus,
     PaymentStatusResponse, PaymentUpdateRequest, PaymentValueField, PixQrCodeResponse,
 };
+
+pub use types::{PaymentResponse, WalletResponse, WalletsResponse};

@@ -67,3 +67,30 @@ impl Client {
         self.send_typed::<(), _>(Method::GET, &path, None).await
     }
 }
+
+impl Client {
+    /// Read all payment fields used for reconciliation with exact decimal tokens.
+    pub async fn get_payment(
+        &self,
+        payment_id: &str,
+    ) -> Result<crate::types::PaymentResponse, Error> {
+        let encoded: String = payment_id
+            .bytes()
+            .map(|byte| {
+                if byte.is_ascii_alphanumeric() || b"_-".contains(&byte) {
+                    char::from(byte).to_string()
+                } else {
+                    format!("%{byte:02X}")
+                }
+            })
+            .collect();
+        self.send_typed::<(), _>(Method::GET, &format!("/v3/payments/{encoded}"), None)
+            .await
+    }
+
+    /// Identify the authenticated receiving account without private financial APIs.
+    pub async fn get_wallets(&self) -> Result<crate::types::WalletsResponse, Error> {
+        self.send_typed::<(), _>(Method::GET, "/v3/wallets/", None)
+            .await
+    }
+}
