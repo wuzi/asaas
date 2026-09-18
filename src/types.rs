@@ -425,7 +425,7 @@ pub struct LifecyclePaymentCancellationResponse {
 
 /// Full payment observation. Monetary JSON tokens never pass through binary floats.
 /// Native strings deliberately preserve future provider statuses and billing types.
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PaymentResponse {
     pub id: String,
@@ -438,6 +438,23 @@ pub struct PaymentResponse {
     pub client_payment_date: Option<String>,
     pub installment: Option<String>,
     pub installment_number: Option<u32>,
+}
+
+/// Refund-aware payment read, added without changing existing public struct literals.
+/// Refund records retain exact JSON numbers and unknown fields for caller validation.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct PaymentDetails {
+    #[serde(flatten)]
+    pub payment: PaymentResponse,
+    #[serde(rename = "externalReference")]
+    pub external_reference: Option<String>,
+    /// Missing means no refund records. Explicit null/malformed values are preserved.
+    #[serde(default = "empty_refunds")]
+    pub refunds: serde_json::Value,
+}
+
+fn empty_refunds() -> serde_json::Value {
+    serde_json::Value::Array(Vec::new())
 }
 
 /// Authenticated account wallets from the public `/v3/wallets/` endpoint.

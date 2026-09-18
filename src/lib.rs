@@ -21,7 +21,7 @@ pub use types::{
     PixQrCodeResponse,
 };
 
-pub use types::{PaymentResponse, WalletResponse, WalletsResponse};
+pub use types::{PaymentDetails, PaymentResponse, WalletResponse, WalletsResponse};
 
 #[cfg(test)]
 mod transport_tests;

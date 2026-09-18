@@ -110,22 +110,22 @@ impl Client {
 }
 
 impl Client {
-    /// Read all payment fields used for reconciliation with exact decimal tokens.
+    /// Read the legacy payment summary with exact decimal tokens.
+    /// Use `get_payment_details` for reconciliation that must account for refunds.
     pub async fn get_payment(
         &self,
         payment_id: &str,
     ) -> Result<crate::types::PaymentResponse, Error> {
-        let encoded: String = payment_id
-            .bytes()
-            .map(|byte| {
-                if byte.is_ascii_alphanumeric() || b"_-".contains(&byte) {
-                    char::from(byte).to_string()
-                } else {
-                    format!("%{byte:02X}")
-                }
-            })
-            .collect();
-        self.send_typed::<(), _>(Method::GET, &format!("/v3/payments/{encoded}"), None)
+        self.send_typed::<(), _>(Method::GET, &payment_path(payment_id), None)
+            .await
+    }
+
+    /// Read the current payment and every refund record in one authenticated request.
+    pub async fn get_payment_details(
+        &self,
+        payment_id: &str,
+    ) -> Result<crate::types::PaymentDetails, Error> {
+        self.send_typed::<(), _>(Method::GET, &payment_path(payment_id), None)
             .await
     }
 
@@ -134,4 +134,18 @@ impl Client {
         self.send_typed::<(), _>(Method::GET, "/v3/wallets/", None)
             .await
     }
+}
+
+fn payment_path(payment_id: &str) -> String {
+    let encoded: String = payment_id
+        .bytes()
+        .map(|byte| {
+            if byte.is_ascii_alphanumeric() || b"_-".contains(&byte) {
+                char::from(byte).to_string()
+            } else {
+                format!("%{byte:02X}")
+            }
+        })
+        .collect();
+    format!("/v3/payments/{encoded}")
 }

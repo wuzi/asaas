@@ -60,7 +60,13 @@ let response = client.create_lean_payment(&payload).await?;
 
 ### Read-only reconciliation
 
-`Client::get_payment(id)` uses the authenticated public `GET /v3/payments/{id}`.
+`Client::get_payment_details(id)` uses the authenticated public `GET /v3/payments/{id}`
+and preserves every `refunds` record alongside the payment. Missing refunds become
+an empty array; explicit null, unknown fields, and malformed records are preserved
+for the caller to validate. A paid status alone does not prove retained funds;
+inspect refund attempts before settling. The existing `get_payment` summary and
+`PaymentResponse` struct fields remain source compatible.
+
 `PaymentResponse` preserves monetary fields as `serde_json::Number` with arbitrary
 precision; parse their decimal text directly into your decimal library. Status and
 billing type remain native strings so new provider values deserialize safely.
@@ -69,7 +75,8 @@ Consumers must reject ambiguous wallet lists and verify requested payment IDs.
 
 The loopback TLS tests in `tests/observation.rs` exercise these documented schemas:
 https://docs.asaas.com/reference/recuperar-uma-unica-cobranca and
-https://docs.asaas.com/reference/recuperar-walletid (reviewed 2026-09-18).
+https://docs.asaas.com/reference/recuperar-walletid and
+https://docs.asaas.com/docs/refunds (reviewed 2026-09-18).
 Fixtures use synthetic identifiers and no provider credentials or external calls.
 
 ## HTTP transport and request accounting
