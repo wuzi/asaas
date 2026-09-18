@@ -71,3 +71,15 @@ The loopback TLS tests in `tests/observation.rs` exercise these documented schem
 https://docs.asaas.com/reference/recuperar-uma-unica-cobranca and
 https://docs.asaas.com/reference/recuperar-walletid (reviewed 2026-09-18).
 Fixtures use synthetic identifiers and no provider credentials or external calls.
+
+## HTTP transport and request accounting
+
+SDK-created clients disable automatic HTTP retries and redirects. Each HTTP
+attempt has a 20-second total timeout and a 5-second connection timeout, including
+TLS negotiation. A timeout or dropped response does not prove a mutation failed;
+reconcile uncertain mutations before deciding whether to submit another request.
+
+`ClientBuilder::http_client` accepts a caller-owned Reqwest client. Configure that
+client with `.retry(reqwest::retry::never())`,
+`.redirect(reqwest::redirect::Policy::none())`, and finite `.timeout(...)` and
+`.connect_timeout(...)` values to preserve these accounting bounds.

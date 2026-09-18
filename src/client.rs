@@ -6,6 +6,15 @@ use serde::de::DeserializeOwned;
 use crate::environment::{Endpoints, Environment};
 use crate::error::{Error, LifecycleError};
 
+// Bound each native HTTP attempt without hidden retries or redirects.
+pub(crate) fn http_client_builder() -> reqwest::ClientBuilder {
+    HttpClient::builder()
+        .retry(reqwest::retry::never())
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(std::time::Duration::from_secs(20))
+        .connect_timeout(std::time::Duration::from_secs(5))
+}
+
 pub struct Client {
     pub(crate) api_key: String,
     pub(crate) user_agent: String,
@@ -55,6 +64,10 @@ impl ClientBuilder {
         self
     }
 
+    /// Supply a caller-owned transport, overriding the SDK defaults.
+    ///
+    /// The caller must disable retries and redirects and set finite request/connect
+    /// timeouts to retain bounded native request accounting.
     #[must_use]
     pub fn http_client(mut self, http_client: HttpClient) -> Self {
         self.http = Some(http_client);
@@ -71,7 +84,10 @@ impl ClientBuilder {
             api_key,
             user_agent,
             environment: self.environment,
-            http: self.http.unwrap_or_default(),
+            http: match self.http {
+                Some(http) => http,
+                None => http_client_builder().build()?,
+            },
         })
     }
 }

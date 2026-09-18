@@ -22,3 +22,6 @@ pub use types::{
 };
 
 pub use types::{PaymentResponse, WalletResponse, WalletsResponse};
+
+#[cfg(test)]
+mod transport_tests;
