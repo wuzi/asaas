@@ -65,7 +65,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<BillingInfoResponse, Error> {
-        let path = format!("/v3/payments/{payment_id}/billingInfo");
+        let path = format!("{}/billingInfo", payment_path(payment_id));
         self.send_typed::<(), _>(Method::GET, &path, None).await
     }
 

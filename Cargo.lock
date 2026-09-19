@@ -13,7 +13,7 @@ dependencies = [
 
 [[package]]
 name = "asaas"
-version = "0.1.10"
+version = "0.2.0"
 dependencies = [
  "h2",
  "native-tls",

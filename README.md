@@ -2,6 +2,11 @@
 
 A Rust SDK for integrating with the payment services provided by [Asaas](https://docs.asaas.com/). This library provides strongly-typed bindings for the Asaas API.
 
+Version 0.2 adds deletion evidence to `PaymentDetails` and makes that response type
+non-exhaustive. Obtain it through `get_payment_details` or deserialize a response
+instead of constructing a struct literal. An absent `deleted` value is distinct
+from `Some(false)`; refund records continue to retain exact JSON numbers.
+
 # Quick Start
 
 ```rs

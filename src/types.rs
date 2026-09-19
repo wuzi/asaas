@@ -440,14 +440,18 @@ pub struct PaymentResponse {
     pub installment_number: Option<u32>,
 }
 
-/// Refund-aware payment read, added without changing existing public struct literals.
+/// Current payment state, including deletion and refund evidence.
 /// Refund records retain exact JSON numbers and unknown fields for caller validation.
+/// Deserialize bank responses instead of constructing this extensible shape with literals.
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[non_exhaustive]
 pub struct PaymentDetails {
     #[serde(flatten)]
     pub payment: PaymentResponse,
     #[serde(rename = "externalReference")]
     pub external_reference: Option<String>,
+    /// Missing deletion evidence remains distinct from an explicitly active payment.
+    pub deleted: Option<bool>,
     /// Missing means no refund records. Explicit null/malformed values are preserved.
     #[serde(default = "empty_refunds")]
     pub refunds: serde_json::Value,

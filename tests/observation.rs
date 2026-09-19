@@ -21,6 +21,18 @@ async fn full_payment_read_preserves_exact_numbers_and_unknown_native_values() {
 }
 
 #[tokio::test]
+async fn payment_instructions_keep_native_id_in_one_path_segment() {
+    let (client, server) = serve_once(
+        "GET",
+        "/v3/payments/pay%2F123/billingInfo",
+        StubResponse::json("{}"),
+    )
+    .await;
+    client.get_payment_billing_info("pay/123").await.unwrap();
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn wallet_read_uses_authenticated_public_endpoint() {
     let (client, server) = serve_once("GET", "/v3/wallets/", StubResponse::json(r#"{"object":"list","hasMore":false,"totalCount":1,"limit":10,"offset":0,"data":[{"object":"wallet","id":"wallet-123"}]}"#)).await;
     let wallets = client.get_wallets().await.unwrap();
@@ -52,6 +64,16 @@ fn payment_details_distinguish_absent_refunds_from_ambiguous_provider_data() {
     let base = serde_json::json!({"id":"pay_123","status":"RECEIVED","billingType":"BOLETO","value":100.00});
     let absent: asaas::PaymentDetails = serde_json::from_value(base.clone()).unwrap();
     assert_eq!(absent.refunds, serde_json::json!([]));
+    for deleted in [serde_json::Value::Null, false.into(), true.into()] {
+        let mut native = base.clone();
+        native["deleted"] = deleted.clone();
+        let details: asaas::PaymentDetails = serde_json::from_value(native).unwrap();
+        assert_eq!(
+            serde_json::to_value(details).unwrap().get("deleted"),
+            Some(&deleted),
+            "native deletion evidence must survive the authenticated read"
+        );
+    }
     for refunds in [
         serde_json::Value::Null,
         serde_json::json!({"status":"UNKNOWN"}),
