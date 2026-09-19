@@ -86,6 +86,12 @@ Fixtures use synthetic identifiers and no provider credentials or external calls
 
 ## HTTP transport and request accounting
 
+Installment PDF downloads are limited to 10 MiB, including responses without a
+Content-Length header and provider error bodies. Successful downloads must have
+the PDF media type and PDF header/end markers; valid PDF bytes are returned
+unchanged. Oversized or invalid PDF responses use the existing
+`Error::RequestFailed` variant with a short diagnostic and the native HTTP status.
+
 SDK-created clients disable automatic HTTP retries and redirects. Each HTTP
 attempt has a 20-second total timeout and a 5-second connection timeout, including
 TLS negotiation. A timeout or dropped response does not prove a mutation failed;

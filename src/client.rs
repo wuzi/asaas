@@ -6,6 +6,8 @@ use serde::de::DeserializeOwned;
 use crate::environment::{Endpoints, Environment};
 use crate::error::{Error, LifecycleError};
 
+const MAX_PDF_BYTES: usize = 10 * 1024 * 1024;
+
 // Bound each native HTTP attempt without hidden retries or redirects.
 pub(crate) fn http_client_builder() -> reqwest::ClientBuilder {
     HttpClient::builder()
@@ -204,7 +206,7 @@ impl Client {
     ) -> Result<Vec<u8>, Error> {
         let url = format!("{}{path}", self.endpoints().api_base_url);
 
-        let response = self
+        let mut response = self
             .http
             .request(method, &url)
             .header(ACCEPT, accept)
@@ -213,18 +215,50 @@ impl Client {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            return Err(Error::RequestFailed { status, body });
+        let status = response.status();
+        let invalid = |reason: &str| Error::RequestFailed {
+            status,
+            body: reason.to_owned(),
+        };
+        // Bound error responses as well as successful downloads. A missing or
+        // inaccurate Content-Length must never bypass the streaming limit.
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_PDF_BYTES as u64)
+        {
+            return Err(invalid("PDF response exceeds the 10 MiB size limit"));
         }
-
-        let bytes = response.bytes().await?;
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response.chunk().await? {
+            if bytes.len().saturating_add(chunk.len()) > MAX_PDF_BYTES {
+                return Err(invalid("PDF response exceeds the 10 MiB size limit"));
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        if !status.is_success() {
+            return Err(Error::RequestFailed {
+                status,
+                body: String::from_utf8_lossy(&bytes).into_owned(),
+            });
+        }
         if bytes.is_empty() {
             return Err(Error::EmptyResponse);
         }
-
-        Ok(bytes.to_vec())
+        let pdf_type = response
+            .headers()
+            .get(CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.split(';').next())
+            .is_some_and(|value| value.trim().eq_ignore_ascii_case("application/pdf"));
+        if !pdf_type
+            || !bytes.starts_with(b"%PDF-")
+            || !bytes[bytes.len().saturating_sub(1024)..]
+                .windows(5)
+                .any(|window| window == b"%%EOF")
+        {
+            return Err(invalid("Invalid PDF response"));
+        }
+        Ok(bytes)
     }
 }
 
