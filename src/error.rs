@@ -23,6 +23,7 @@ pub enum LifecycleError {
     Response {
         status: reqwest::StatusCode,
         body: String,
+        retry_after: Option<String>,
         rate_limit_reset_seconds: Option<u64>,
         decode_error: Option<serde_json::Error>,
     },
@@ -42,6 +43,15 @@ impl LifecycleError {
         match self {
             Self::Http(_) => None,
             Self::Response { body, .. } => Some(body),
+        }
+    }
+
+    /// Returns the native `Retry-After` value without interpreting a duration or HTTP date.
+    #[must_use]
+    pub fn retry_after(&self) -> Option<&str> {
+        match self {
+            Self::Http(_) => None,
+            Self::Response { retry_after, .. } => retry_after.as_deref(),
         }
     }
 
@@ -117,10 +127,40 @@ pub enum Error {
     RequestFailed {
         status: reqwest::StatusCode,
         body: String,
+        retry_after: Option<String>,
+        rate_limit_reset_seconds: Option<u64>,
     },
 }
 
 impl Error {
+    #[must_use]
+    pub const fn status(&self) -> Option<reqwest::StatusCode> {
+        match self {
+            Self::RequestFailed { status, .. } => Some(*status),
+            _ => None,
+        }
+    }
+
+    /// Returns the native `Retry-After` value without interpreting a duration or HTTP date.
+    #[must_use]
+    pub fn retry_after(&self) -> Option<&str> {
+        match self {
+            Self::RequestFailed { retry_after, .. } => retry_after.as_deref(),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub const fn rate_limit_reset_seconds(&self) -> Option<u64> {
+        match self {
+            Self::RequestFailed {
+                rate_limit_reset_seconds,
+                ..
+            } => *rate_limit_reset_seconds,
+            _ => None,
+        }
+    }
+
     pub fn api_errors(&self) -> Option<Vec<ApiError>> {
         let Self::RequestFailed { body, .. } = self else {
             return None;
@@ -141,7 +181,7 @@ impl Display for Error {
             Self::Http(error) => write!(f, "http error: {error}"),
             Self::Json(error) => write!(f, "json error: {error}"),
             Self::EmptyResponse => write!(f, "received empty response from server"),
-            Self::RequestFailed { status, body } => {
+            Self::RequestFailed { status, body, .. } => {
                 write!(f, "request failed with status {status}: {body}")
             }
         }
@@ -180,6 +220,8 @@ mod tests {
             status: reqwest::StatusCode::BAD_REQUEST,
             body: r#"{"errors":[{"code":"invalid_action","description":"Esta cobrança não pode mais ser paga."}]}"#
                 .to_string(),
+            retry_after: None,
+            rate_limit_reset_seconds: None,
         };
 
         let errors = error.api_errors().expect("structured Asaas errors");

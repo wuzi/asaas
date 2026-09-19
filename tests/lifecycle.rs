@@ -233,14 +233,17 @@ async fn cancellation_uses_standard_endpoint_and_requires_positive_identity() {
 }
 
 #[tokio::test]
-async fn lifecycle_error_retains_status_body_structured_errors_and_rate_limit_reset() {
+async fn lifecycle_error_retains_status_body_structured_errors_and_retry_metadata() {
     let body = r#"{"errors":[{"code":"rate_limit","description":"Try later"}]}"#;
     let (client, server) = serve_once(
         "GET",
         "/v3/payments/pay_123",
         StubResponse {
             status: "429 Too Many Requests",
-            headers: &[("RateLimit-Reset", "17")],
+            headers: &[
+                ("Retry-After", "Wed, 21 Oct 2015 07:28:00 GMT"),
+                ("RateLimit-Reset", "17"),
+            ],
             body,
         },
     )
@@ -249,6 +252,7 @@ async fn lifecycle_error_retains_status_body_structured_errors_and_rate_limit_re
     let error = client.get_lifecycle_payment("pay_123").await.unwrap_err();
 
     assert_eq!(error.status(), Some(reqwest::StatusCode::TOO_MANY_REQUESTS));
+    assert_eq!(error.retry_after(), Some("Wed, 21 Oct 2015 07:28:00 GMT"));
     assert_eq!(error.response_body(), Some(body));
     assert_eq!(error.rate_limit_reset_seconds(), Some(17));
     let errors = error.api_errors().unwrap();

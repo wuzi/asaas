@@ -83,8 +83,12 @@ pub async fn serve_raw_once(
             request_headers.push_str(&line.to_ascii_lowercase());
         }
         assert!(request_headers.contains("access_token: test-token\r\n"));
-        assert!(!request_headers.contains("content-type:"));
-        assert!(!request_headers.contains("content-length:"));
+        if matches!(method, "POST" | "PUT" | "PATCH") {
+            assert!(request_headers.contains("content-type: application/json\r\n"));
+        } else {
+            assert!(!request_headers.contains("content-type:"));
+            assert!(!request_headers.contains("content-length:"));
+        }
 
         // Bounded clients may close early after a rejected header or oversized chunk.
         let _ = stream.write_all(&response).await;

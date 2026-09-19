@@ -8,6 +8,22 @@ use crate::error::{Error, LifecycleError};
 
 const MAX_PDF_BYTES: usize = 10 * 1024 * 1024;
 
+fn retry_after(response: &reqwest::Response) -> Option<String> {
+    response
+        .headers()
+        .get("Retry-After")
+        .and_then(|value| value.to_str().ok())
+        .map(ToOwned::to_owned)
+}
+
+fn rate_limit_reset_seconds(response: &reqwest::Response) -> Option<u64> {
+    response
+        .headers()
+        .get("RateLimit-Reset")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse().ok())
+}
+
 // Bound each native HTTP attempt without hidden retries or redirects.
 pub(crate) fn http_client_builder() -> reqwest::ClientBuilder {
     HttpClient::builder()
@@ -143,8 +159,15 @@ impl Client {
         let response = request.send().await?;
         if !response.status().is_success() {
             let status = response.status();
+            let retry_after = retry_after(&response);
+            let rate_limit_reset_seconds = rate_limit_reset_seconds(&response);
             let body = response.text().await.unwrap_or_default();
-            return Err(Error::RequestFailed { status, body });
+            return Err(Error::RequestFailed {
+                status,
+                body,
+                retry_after,
+                rate_limit_reset_seconds,
+            });
         }
 
         let body = response.text().await?;
@@ -174,17 +197,15 @@ impl Client {
             .await?;
 
         let status = response.status();
-        let rate_limit_reset_seconds = response
-            .headers()
-            .get("RateLimit-Reset")
-            .and_then(|value| value.to_str().ok())
-            .and_then(|value| value.parse().ok());
+        let retry_after = retry_after(&response);
+        let rate_limit_reset_seconds = rate_limit_reset_seconds(&response);
         let body = response.text().await?;
 
         if !status.is_success() {
             return Err(LifecycleError::Response {
                 status,
                 body,
+                retry_after,
                 rate_limit_reset_seconds,
                 decode_error: None,
             });
@@ -193,6 +214,7 @@ impl Client {
         serde_json::from_str(&body).map_err(|decode_error| LifecycleError::Response {
             status,
             body,
+            retry_after,
             rate_limit_reset_seconds,
             decode_error: Some(decode_error),
         })
@@ -216,9 +238,13 @@ impl Client {
             .await?;
 
         let status = response.status();
+        let retry_after = retry_after(&response);
+        let rate_limit_reset_seconds = rate_limit_reset_seconds(&response);
         let invalid = |reason: &str| Error::RequestFailed {
             status,
             body: reason.to_owned(),
+            retry_after: retry_after.clone(),
+            rate_limit_reset_seconds,
         };
         // Bound error responses as well as successful downloads. A missing or
         // inaccurate Content-Length must never bypass the streaming limit.
@@ -239,6 +265,8 @@ impl Client {
             return Err(Error::RequestFailed {
                 status,
                 body: String::from_utf8_lossy(&bytes).into_owned(),
+                retry_after,
+                rate_limit_reset_seconds,
             });
         }
         if bytes.is_empty() {
