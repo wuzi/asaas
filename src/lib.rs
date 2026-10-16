@@ -14,11 +14,11 @@ pub use types::{
     CustomerListRequest, CustomerListResponse, CustomerResponse, IdentificationFieldResponse,
     InstallmentPaymentsListResponse, LeanPaymentCreateRequest, LeanPaymentDeleteResponse,
     LeanPaymentResponse, LifecycleInstallmentPaymentListRequest, LifecycleInstallmentResponse,
-    LifecyclePaymentCancellationResponse, LifecyclePaymentListRequest,
-    LifecyclePaymentListResponse, LifecyclePaymentResponse, LifecyclePaymentSplitResponse,
-    PaymentCallback, PaymentDiscount, PaymentFine, PaymentInterest, PaymentSplitItem,
-    PaymentStatus, PaymentStatusResponse, PaymentUpdateRequest, PaymentValueField,
-    PixQrCodeResponse,
+    LifecyclePaymentCancellationResponse, LifecyclePaymentDiscountResponse,
+    LifecyclePaymentListRequest, LifecyclePaymentListResponse, LifecyclePaymentResponse,
+    LifecyclePaymentSplitResponse, PaymentCallback, PaymentDiscount, PaymentFine, PaymentInterest,
+    PaymentSplitItem, PaymentStatus, PaymentStatusResponse, PaymentUpdateRequest,
+    PaymentValueField, PixQrCodeResponse,
 };
 
 pub use types::{PaymentDetails, PaymentResponse, WalletResponse, WalletsResponse};

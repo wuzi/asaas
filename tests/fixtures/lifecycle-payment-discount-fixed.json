@@ -1,0 +1,14 @@
+{
+  "id": "pay_fixed",
+  "customer": "cus_123",
+  "status": "PENDING",
+  "billingType": "BOLETO",
+  "value": 9007199254740993.01,
+  "dueDate": "2026-10-31",
+  "discount": {
+    "value": 9007199254740993.000000000000000001,
+    "type": "FIXED",
+    "dueDateLimitDays": 5,
+    "limitDate": "2026-10-26"
+  }
+}

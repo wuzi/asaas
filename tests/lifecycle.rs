@@ -23,6 +23,12 @@ const PAYMENT: &str = r#"{
   "deleted":false,
   "installment":"ins_123",
   "installmentNumber":2,
+  "discount":{
+    "value":14.285714285714285714,
+    "type":"PERCENTAGE",
+    "dueDateLimitDays":3,
+    "limitDate":"2026-09-28"
+  },
   "split":[{
     "id":"split_123",
     "walletId":"wallet_123",
@@ -83,6 +89,11 @@ async fn payment_listing_encodes_lifecycle_filters_and_preserves_exact_observati
     assert_eq!(payment.deleted, Some(false));
     assert_eq!(payment.installment.as_deref(), Some("ins_123"));
     assert_eq!(payment.installment_number, Some(2));
+    let discount = payment.discount.as_ref().unwrap();
+    assert_eq!(discount.value.to_string(), "14.285714285714285714");
+    assert_eq!(discount.kind, "PERCENTAGE");
+    assert_eq!(discount.due_date_limit_days, Some(3));
+    assert_eq!(discount.limit_date.as_deref(), Some("2026-09-28"));
     let split = &payment.split[0];
     assert_eq!(split.id.as_deref(), Some("split_123"));
     assert_eq!(split.wallet_id.as_deref(), Some("wallet_123"));
@@ -110,6 +121,10 @@ async fn direct_payment_read_encodes_identity_and_returns_lifecycle_shape() {
 
     assert_eq!(payment.id, "pay_123");
     assert_eq!(payment.customer, "cus_123");
+    assert_eq!(
+        payment.discount.as_ref().unwrap().value.to_string(),
+        "14.285714285714285714"
+    );
     server.await.unwrap();
 }
 
@@ -213,6 +228,15 @@ async fn installment_children_read_is_paginated_and_exact() {
 
     assert_eq!(response.data[0].value.to_string(), "9007199254740993.01");
     assert_eq!(response.data[0].installment.as_deref(), Some("ins_123"));
+    assert_eq!(
+        response.data[0]
+            .discount
+            .as_ref()
+            .unwrap()
+            .value
+            .to_string(),
+        "14.285714285714285714"
+    );
     server.await.unwrap();
 }
 

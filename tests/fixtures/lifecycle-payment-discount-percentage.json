@@ -1,0 +1,14 @@
+{
+  "id": "pay_percentage",
+  "customer": "cus_123",
+  "status": "PENDING",
+  "billingType": "PIX",
+  "value": 129.900000000000000001,
+  "dueDate": "2026-10-31",
+  "discount": {
+    "value": 14.285714285714285714,
+    "type": "PERCENTAGE",
+    "dueDateLimitDays": null,
+    "limitDate": null
+  }
+}

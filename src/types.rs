@@ -354,12 +354,26 @@ pub struct LifecyclePaymentResponse {
     pub billing_type: String,
     pub value: serde_json::Number,
     pub original_value: Option<serde_json::Number>,
+    pub discount: Option<LifecyclePaymentDiscountResponse>,
     pub due_date: String,
     pub deleted: Option<bool>,
     pub installment: Option<String>,
     pub installment_number: Option<u32>,
     #[serde(default)]
     pub split: Vec<LifecyclePaymentSplitResponse>,
+}
+
+/// Exact-decimal discount observed on a lifecycle payment.
+/// Native discount types remain strings to preserve future Asaas values.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecyclePaymentDiscountResponse {
+    pub value: serde_json::Number,
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub due_date_limit_days: Option<i32>,
+    pub limit_date: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
