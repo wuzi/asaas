@@ -2,6 +2,11 @@
 
 A Rust SDK for integrating with the payment services provided by [Asaas](https://docs.asaas.com/). This library provides strongly-typed bindings for the Asaas API.
 
+Version 0.4 adds `LifecyclePaymentResponse::discount`, preserving discount values
+as exact JSON numbers and retaining native discount types and deadlines. When
+upgrading from 0.3, add `discount: None` to existing response struct literals.
+Payment responses without a discount continue to deserialize successfully.
+
 Version 0.2 adds deletion evidence to `PaymentDetails` and makes that response type
 non-exhaustive. Obtain it through `get_payment_details` or deserialize a response
 instead of constructing a struct literal. An absent `deleted` value is distinct
@@ -34,6 +39,7 @@ let payload = LeanPaymentCreateRequest {
     installment_value: None,
     discount: Some(PaymentDiscount {
         value: 10.0,
+        limit_date: None,
         due_date_limit_days: Some(0),
         kind: Some("PERCENTAGE".into()),
     }),
