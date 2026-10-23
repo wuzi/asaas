@@ -43,7 +43,7 @@ async fn wallet_read_uses_authenticated_public_endpoint() {
 
 #[tokio::test]
 async fn full_payment_details_preserve_exact_refund_evidence() {
-    let (client, server) = serve_once("GET", "/v3/payments/pay%2F123", StubResponse::json(r#"{"id":"pay/123","externalReference":"hubnari:operation:fixture","status":"RECEIVED","billingType":"BOLETO","value":100.00,"refunds":[{"status":"DONE","value":1.000000000000000001,"refundedSplits":[{"id":"split_1","value":0.50,"done":true}]}]}"#)).await;
+    let (client, server) = serve_once("GET", "/v3/payments/pay%2F123", StubResponse::json(r#"{"id":"pay/123","externalReference":"hubnari:operation:fixture","status":"RECEIVED","billingType":"BOLETO","value":100.00,"bankSlipUrl":"https://www.asaas.com/b/pdf/bank-slip","transactionReceiptUrl":"https://www.asaas.com/comprovantes/receipt","refunds":[{"status":"DONE","value":1.000000000000000001,"refundedSplits":[{"id":"split_1","value":0.50,"done":true}]}]}"#)).await;
     let details = client.get_payment_details("pay/123").await.unwrap();
     assert_eq!(details.payment.id, "pay/123");
     assert_eq!(
@@ -56,6 +56,15 @@ async fn full_payment_details_preserve_exact_refund_evidence() {
         "1.000000000000000001"
     );
     assert_eq!(details.refunds[0]["refundedSplits"][0]["done"], true);
+    let document_fields = serde_json::to_value(&details).unwrap();
+    assert_eq!(
+        document_fields["bankSlipUrl"], "https://www.asaas.com/b/pdf/bank-slip",
+        "the authenticated payment read must retain its bank-issued document URLs"
+    );
+    assert_eq!(
+        document_fields["transactionReceiptUrl"],
+        "https://www.asaas.com/comprovantes/receipt"
+    );
     server.await.unwrap();
 }
 

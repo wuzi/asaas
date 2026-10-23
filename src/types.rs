@@ -464,6 +464,10 @@ pub struct PaymentDetails {
     pub payment: PaymentResponse,
     #[serde(rename = "externalReference")]
     pub external_reference: Option<String>,
+    #[serde(rename = "bankSlipUrl")]
+    pub bank_slip_url: Option<String>,
+    #[serde(rename = "transactionReceiptUrl")]
+    pub transaction_receipt_url: Option<String>,
     /// Missing deletion evidence remains distinct from an explicitly active payment.
     pub deleted: Option<bool>,
     /// Missing means no refund records. Explicit null/malformed values are preserved.
