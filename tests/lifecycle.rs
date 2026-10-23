@@ -14,6 +14,7 @@ const PAYMENT: &str = r#"{
   "object":"payment",
   "id":"pay_123",
   "customer":"cus_123",
+  "description":"Plano fibra; 2x endereço adicional",
   "externalReference":"invoice/42 + one",
   "status":"FUTURE_STATUS",
   "billingType":"FUTURE_TYPE",
@@ -75,6 +76,10 @@ async fn payment_listing_encodes_lifecycle_filters_and_preserves_exact_observati
     assert_eq!(payment.id, "pay_123");
     assert_eq!(payment.customer, "cus_123");
     assert_eq!(
+        payment.description.as_deref(),
+        Some("Plano fibra; 2x endereço adicional")
+    );
+    assert_eq!(
         payment.external_reference.as_deref(),
         Some("invoice/42 + one")
     );
@@ -121,6 +126,10 @@ async fn direct_payment_read_encodes_identity_and_returns_lifecycle_shape() {
 
     assert_eq!(payment.id, "pay_123");
     assert_eq!(payment.customer, "cus_123");
+    assert_eq!(
+        payment.description.as_deref(),
+        Some("Plano fibra; 2x endereço adicional")
+    );
     assert_eq!(
         payment.discount.as_ref().unwrap().value.to_string(),
         "14.285714285714285714"

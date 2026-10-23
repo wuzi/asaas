@@ -2,6 +2,10 @@
 
 A Rust SDK for integrating with the payment services provided by [Asaas](https://docs.asaas.com/). This library provides strongly-typed bindings for the Asaas API.
 
+Version 0.5 adds optional `LifecyclePaymentResponse::description` for authenticated
+payment readback. When upgrading from 0.4, add `description: None` to existing
+response struct literals. Missing or null descriptions deserialize as `None`.
+
 Version 0.4.1 retains the optional `PaymentDetails::bank_slip_url` and
 `transaction_receipt_url` returned by the existing authenticated payment read.
 Callers can offer a boleto before payment or a receipt afterward using the same

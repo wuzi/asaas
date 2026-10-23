@@ -349,6 +349,7 @@ pub struct LifecycleInstallmentPaymentListRequest {
 pub struct LifecyclePaymentResponse {
     pub id: String,
     pub customer: String,
+    pub description: Option<String>,
     pub external_reference: Option<String>,
     pub status: String,
     pub billing_type: String,
