@@ -1,6 +1,6 @@
 use reqwest::Method;
 
-use crate::client::{Client, encode_url_component, push_query};
+use crate::client::{Client, encode_identifier, push_query};
 use crate::error::{Error, LifecycleError};
 use crate::types::{
     CreateCustomerRequest, CustomerListRequest, CustomerListResponse, CustomerResponse,
@@ -40,7 +40,8 @@ impl Client {
         &self,
         customer_id: &str,
     ) -> Result<CustomerResponse, LifecycleError> {
-        let customer_id = encode_url_component(customer_id);
+        let customer_id =
+            encode_identifier(customer_id).ok_or(LifecycleError::InvalidIdentifier)?;
         self.send_lifecycle_typed(Method::GET, &format!("/v3/customers/{customer_id}"))
             .await
     }

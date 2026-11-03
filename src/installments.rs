@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use reqwest::Method;
 
-use crate::client::{Client, encode_url_component, push_query};
+use crate::client::{Client, encode_identifier, push_query};
 use crate::error::{Error, LifecycleError};
 use crate::types::{
     InstallmentPaymentsListResponse, LifecycleInstallmentPaymentListRequest,
@@ -15,6 +15,7 @@ impl Client {
         installment_id: &str,
         offset: Option<u64>,
     ) -> Result<InstallmentPaymentsListResponse, Error> {
+        let installment_id = encode_identifier(installment_id).ok_or(Error::InvalidIdentifier)?;
         let mut path = format!("/v3/installments/{installment_id}/payments");
         if let Some(value) = offset {
             let _ = write!(path, "?offset={value}");
@@ -26,6 +27,7 @@ impl Client {
         &self,
         installment_id: &str,
     ) -> Result<Vec<u8>, Error> {
+        let installment_id = encode_identifier(installment_id).ok_or(Error::InvalidIdentifier)?;
         let path = format!("/v3/installments/{installment_id}/paymentBook");
         self.send_bytes(Method::GET, &path, "application/pdf").await
     }
@@ -34,7 +36,8 @@ impl Client {
         &self,
         installment_id: &str,
     ) -> Result<LifecycleInstallmentResponse, LifecycleError> {
-        let installment_id = encode_url_component(installment_id);
+        let installment_id =
+            encode_identifier(installment_id).ok_or(LifecycleError::InvalidIdentifier)?;
         self.send_lifecycle_typed(Method::GET, &format!("/v3/installments/{installment_id}"))
             .await
     }
@@ -44,7 +47,8 @@ impl Client {
         installment_id: &str,
         request: &LifecycleInstallmentPaymentListRequest,
     ) -> Result<LifecyclePaymentListResponse, LifecycleError> {
-        let installment_id = encode_url_component(installment_id);
+        let installment_id =
+            encode_identifier(installment_id).ok_or(LifecycleError::InvalidIdentifier)?;
         let mut path = format!("/v3/installments/{installment_id}/payments");
         let mut has_query = false;
         if let Some(value) = request.offset {

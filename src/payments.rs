@@ -1,7 +1,7 @@
 use reqwest::Method;
 
 use crate::client::Client;
-use crate::client::{encode_url_component, push_query};
+use crate::client::{encode_identifier, push_query};
 use crate::error::{Error, LifecycleError};
 use crate::types::{
     BillingInfoResponse, IdentificationFieldResponse, LeanPaymentCreateRequest,
@@ -24,7 +24,7 @@ impl Client {
         payment_id: &str,
         payload: &PaymentUpdateRequest,
     ) -> Result<LeanPaymentResponse, Error> {
-        let path = format!("/v3/payments/{payment_id}");
+        let path = payment_path(payment_id)?;
         self.send_typed(Method::PUT, &path, Some(payload)).await
     }
 
@@ -32,6 +32,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<LeanPaymentDeleteResponse, Error> {
+        let payment_id = encode_identifier(payment_id).ok_or(Error::InvalidIdentifier)?;
         let path = format!("/v3/lean/payments/{payment_id}");
         self.send_typed::<LeanPaymentDeleteResponse, _>(Method::DELETE, &path, None)
             .await
@@ -41,7 +42,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<PixQrCodeResponse, Error> {
-        let path = format!("/v3/payments/{payment_id}/pixQrCode");
+        let path = format!("{}/pixQrCode", payment_path(payment_id)?);
         self.send_typed::<(), _>(Method::GET, &path, None).await
     }
 
@@ -49,7 +50,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<IdentificationFieldResponse, Error> {
-        let path = format!("/v3/payments/{payment_id}/identificationField");
+        let path = format!("{}/identificationField", payment_path(payment_id)?);
         self.send_typed::<(), _>(Method::GET, &path, None).await
     }
 
@@ -57,7 +58,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<PaymentStatusResponse, Error> {
-        let path = format!("/v3/payments/{payment_id}/status");
+        let path = format!("{}/status", payment_path(payment_id)?);
         self.send_typed::<(), _>(Method::GET, &path, None).await
     }
 
@@ -65,7 +66,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<BillingInfoResponse, Error> {
-        let path = format!("{}/billingInfo", payment_path(payment_id));
+        let path = format!("{}/billingInfo", payment_path(payment_id)?);
         self.send_typed::<(), _>(Method::GET, &path, None).await
     }
 
@@ -94,7 +95,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<LifecyclePaymentResponse, LifecycleError> {
-        let payment_id = encode_url_component(payment_id);
+        let payment_id = encode_identifier(payment_id).ok_or(LifecycleError::InvalidIdentifier)?;
         self.send_lifecycle_typed(Method::GET, &format!("/v3/payments/{payment_id}"))
             .await
     }
@@ -103,7 +104,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<LifecyclePaymentCancellationResponse, LifecycleError> {
-        let payment_id = encode_url_component(payment_id);
+        let payment_id = encode_identifier(payment_id).ok_or(LifecycleError::InvalidIdentifier)?;
         self.send_lifecycle_typed(Method::DELETE, &format!("/v3/payments/{payment_id}"))
             .await
     }
@@ -116,7 +117,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<crate::types::PaymentResponse, Error> {
-        self.send_typed::<(), _>(Method::GET, &payment_path(payment_id), None)
+        self.send_typed::<(), _>(Method::GET, &payment_path(payment_id)?, None)
             .await
     }
 
@@ -125,7 +126,7 @@ impl Client {
         &self,
         payment_id: &str,
     ) -> Result<crate::types::PaymentDetails, Error> {
-        self.send_typed::<(), _>(Method::GET, &payment_path(payment_id), None)
+        self.send_typed::<(), _>(Method::GET, &payment_path(payment_id)?, None)
             .await
     }
 
@@ -136,16 +137,7 @@ impl Client {
     }
 }
 
-fn payment_path(payment_id: &str) -> String {
-    let encoded: String = payment_id
-        .bytes()
-        .map(|byte| {
-            if byte.is_ascii_alphanumeric() || b"_-".contains(&byte) {
-                char::from(byte).to_string()
-            } else {
-                format!("%{byte:02X}")
-            }
-        })
-        .collect();
-    format!("/v3/payments/{encoded}")
+fn payment_path(payment_id: &str) -> Result<String, Error> {
+    let encoded = encode_identifier(payment_id).ok_or(Error::InvalidIdentifier)?;
+    Ok(format!("/v3/payments/{encoded}"))
 }

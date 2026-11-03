@@ -1,4 +1,4 @@
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 
 pub struct StubResponse {
     pub status: &'static str,
@@ -43,6 +43,15 @@ pub async fn serve_raw_once(
     target: &'static str,
     response: Vec<u8>,
 ) -> (asaas::Client, tokio::task::JoinHandle<()>) {
+    serve_raw_once_with_body(method, target, response, None).await
+}
+
+pub async fn serve_raw_once_with_body(
+    method: &'static str,
+    target: &'static str,
+    response: Vec<u8>,
+    expected_body: Option<serde_json::Value>,
+) -> (asaas::Client, tokio::task::JoinHandle<()>) {
     let cert = include_bytes!("../fixtures/loopback-only-cert.pem");
     let key = include_bytes!("../fixtures/loopback-only-key.pem");
     let identity = native_tls::Identity::from_pkcs8(cert, key).unwrap();
@@ -53,6 +62,7 @@ pub async fn serve_raw_once(
     let http = reqwest::Client::builder()
         .resolve("api-sandbox.asaas.com", listener.local_addr().unwrap())
         .no_proxy()
+        .retry(reqwest::retry::never())
         .redirect(reqwest::redirect::Policy::none())
         .https_only(true)
         .timeout(std::time::Duration::from_secs(5))
@@ -90,8 +100,33 @@ pub async fn serve_raw_once(
             assert!(!request_headers.contains("content-length:"));
         }
 
+        if let Some(expected) = expected_body {
+            let length: usize = request_headers
+                .lines()
+                .find_map(|line| line.strip_prefix("content-length: "))
+                .unwrap()
+                .trim()
+                .parse()
+                .unwrap();
+            let mut body = vec![0; length];
+            stream.read_exact(&mut body).await.unwrap();
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&body).unwrap(),
+                expected
+            );
+        }
+
         // Bounded clients may close early after a rejected header or oversized chunk.
         let _ = stream.write_all(&response).await;
+        let _ = stream.shutdown().await;
+        // Keep the listener alive briefly so an immediate retry is observed,
+        // including when a bounded decoder closes before consuming the body.
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(75), listener.accept())
+                .await
+                .is_err(),
+            "one SDK invocation must send exactly one request"
+        );
     });
     (client, task)
 }
