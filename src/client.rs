@@ -6,6 +6,9 @@ use serde::de::DeserializeOwned;
 use crate::environment::{Endpoints, Environment};
 use crate::error::{Error, LifecycleError};
 
+const MAX_JSON_BYTES: usize = 10 * 1024 * 1024;
+const JSON_SIZE_DIAGNOSTIC: &str = "JSON response exceeds the 10 MiB size limit";
+
 const MAX_PDF_BYTES: usize = 10 * 1024 * 1024;
 
 fn retry_after(response: &reqwest::Response) -> Option<String> {
@@ -157,11 +160,18 @@ impl Client {
         }
 
         let response = request.send().await?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let retry_after = retry_after(&response);
-            let rate_limit_reset_seconds = rate_limit_reset_seconds(&response);
-            let body = response.text().await.unwrap_or_default();
+        let status = response.status();
+        let retry_after = retry_after(&response);
+        let rate_limit_reset_seconds = rate_limit_reset_seconds(&response);
+        let body = read_json_body(response)
+            .await
+            .map_err(|failure| Error::RequestFailed {
+                status,
+                body: failure.diagnostic().to_owned(),
+                retry_after: retry_after.clone(),
+                rate_limit_reset_seconds,
+            })?;
+        if !status.is_success() {
             return Err(Error::RequestFailed {
                 status,
                 body,
@@ -169,8 +179,6 @@ impl Client {
                 rate_limit_reset_seconds,
             });
         }
-
-        let body = response.text().await?;
         if body.trim().is_empty() {
             return Err(Error::EmptyResponse);
         }
@@ -199,7 +207,15 @@ impl Client {
         let status = response.status();
         let retry_after = retry_after(&response);
         let rate_limit_reset_seconds = rate_limit_reset_seconds(&response);
-        let body = response.text().await?;
+        let body = read_json_body(response)
+            .await
+            .map_err(|failure| LifecycleError::Response {
+                status,
+                body: failure.diagnostic().to_owned(),
+                retry_after: retry_after.clone(),
+                rate_limit_reset_seconds,
+                decode_error: status.is_success().then(|| failure.into_decode_error()),
+            })?;
 
         if !status.is_success() {
             return Err(LifecycleError::Response {
@@ -309,4 +325,65 @@ pub(crate) fn push_query(path: &mut String, has_query: &mut bool, name: &str, va
     path.push_str(name);
     path.push('=');
     path.push_str(&encode_url_component(value));
+}
+
+// Retain at most the configured byte budget; Content-Length is only an early check.
+// The decoder never receives a partial body disguised as a complete response.
+enum JsonBodyFailure {
+    TooLarge,
+    Read(reqwest::Error),
+    InvalidUtf8(std::string::FromUtf8Error),
+}
+
+impl JsonBodyFailure {
+    const fn diagnostic(&self) -> &'static str {
+        match self {
+            Self::TooLarge => JSON_SIZE_DIAGNOSTIC,
+            Self::Read(_) => "Failed to read JSON response body",
+            Self::InvalidUtf8(_) => "JSON response body is not valid UTF-8",
+        }
+    }
+
+    fn into_decode_error(self) -> serde_json::Error {
+        let error = match self {
+            Self::TooLarge => std::io::Error::other(JSON_SIZE_DIAGNOSTIC),
+            Self::Read(error) => std::io::Error::other(error),
+            Self::InvalidUtf8(error) => std::io::Error::other(error),
+        };
+        serde_json::Error::io(error)
+    }
+}
+
+async fn read_json_body(mut response: reqwest::Response) -> Result<String, JsonBodyFailure> {
+    if response
+        .content_length()
+        .is_some_and(|length| length > MAX_JSON_BYTES as u64)
+    {
+        return Err(JsonBodyFailure::TooLarge);
+    }
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(JsonBodyFailure::Read)? {
+        if chunk.len() > MAX_JSON_BYTES - bytes.len() {
+            return Err(JsonBodyFailure::TooLarge);
+        }
+        if bytes.capacity() - bytes.len() < chunk.len() {
+            let capacity = bytes
+                .capacity()
+                .saturating_mul(2)
+                .max(bytes.len() + chunk.len())
+                .min(MAX_JSON_BYTES);
+            bytes.reserve_exact(capacity - bytes.len());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    String::from_utf8(bytes).map_err(JsonBodyFailure::InvalidUtf8)
+}
+
+// Query components have no dot-segment restriction. Resource identifiers do.
+pub(crate) fn encode_identifier(value: &str) -> Option<String> {
+    if matches!(value, "" | "." | "..") {
+        None
+    } else {
+        Some(encode_url_component(value))
+    }
 }

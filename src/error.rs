@@ -15,10 +15,14 @@ struct ApiErrorResponse {
 
 /// Error returned by lifecycle-safe methods.
 ///
-/// HTTP responses retain their status, raw body and Asaas rate-limit reset
-/// header even when the body cannot be decoded as the expected DTO.
+/// HTTP responses retain their status, bounded body and Asaas rate-limit reset
+/// header even when the body cannot be decoded as the expected DTO. Body size
+/// or read failures retain a fixed diagnostic in place of the incomplete body.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum LifecycleError {
+    /// The resource ID is empty or a literal URL dot segment; no request was sent.
+    InvalidIdentifier,
     Http(reqwest::Error),
     Response {
         status: reqwest::StatusCode,
@@ -33,7 +37,7 @@ impl LifecycleError {
     #[must_use]
     pub const fn status(&self) -> Option<reqwest::StatusCode> {
         match self {
-            Self::Http(_) => None,
+            Self::InvalidIdentifier | Self::Http(_) => None,
             Self::Response { status, .. } => Some(*status),
         }
     }
@@ -41,7 +45,7 @@ impl LifecycleError {
     #[must_use]
     pub fn response_body(&self) -> Option<&str> {
         match self {
-            Self::Http(_) => None,
+            Self::InvalidIdentifier | Self::Http(_) => None,
             Self::Response { body, .. } => Some(body),
         }
     }
@@ -50,7 +54,7 @@ impl LifecycleError {
     #[must_use]
     pub fn retry_after(&self) -> Option<&str> {
         match self {
-            Self::Http(_) => None,
+            Self::InvalidIdentifier | Self::Http(_) => None,
             Self::Response { retry_after, .. } => retry_after.as_deref(),
         }
     }
@@ -58,7 +62,7 @@ impl LifecycleError {
     #[must_use]
     pub const fn rate_limit_reset_seconds(&self) -> Option<u64> {
         match self {
-            Self::Http(_) => None,
+            Self::InvalidIdentifier | Self::Http(_) => None,
             Self::Response {
                 rate_limit_reset_seconds,
                 ..
@@ -81,6 +85,7 @@ impl LifecycleError {
 impl Display for LifecycleError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::InvalidIdentifier => write!(f, "invalid resource identifier"),
             Self::Http(error) => write!(f, "http error: {error}"),
             Self::Response {
                 status,
@@ -100,6 +105,7 @@ impl Display for LifecycleError {
 impl std::error::Error for LifecycleError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            Self::InvalidIdentifier => None,
             Self::Http(error) => Some(error),
             Self::Response {
                 decode_error: Some(error),
@@ -119,7 +125,10 @@ impl From<reqwest::Error> for LifecycleError {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
+    /// The resource ID is empty or a literal URL dot segment; no request was sent.
+    InvalidIdentifier,
     BuilderMissingField(&'static str),
     Http(reqwest::Error),
     Json(serde_json::Error),
@@ -178,6 +187,7 @@ impl Display for Error {
             Self::BuilderMissingField(field) => {
                 write!(f, "missing required builder field: {field}")
             }
+            Self::InvalidIdentifier => write!(f, "invalid resource identifier"),
             Self::Http(error) => write!(f, "http error: {error}"),
             Self::Json(error) => write!(f, "json error: {error}"),
             Self::EmptyResponse => write!(f, "received empty response from server"),

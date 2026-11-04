@@ -2,6 +2,19 @@
 
 A Rust SDK for integrating with the payment services provided by [Asaas](https://docs.asaas.com/). This library provides strongly-typed bindings for the Asaas API.
 
+Version 0.6 makes `Error` and `LifecycleError` non-exhaustive and adds the
+fieldless `InvalidIdentifier` variant. Upgrade the Cargo requirement from `0.5`
+to `0.6`; downstream exhaustive matches must handle `InvalidIdentifier` and have
+a fallback arm for future variants. Methods and DTOs retain their existing
+signatures. `InvalidIdentifier` is a known local rejection before any HTTP
+request: it has no provider status, rate-limit metadata, body or provider errors,
+and its Display/Debug contain no caller identifier.
+
+Every resource ID is treated as one opaque URL path segment. Empty IDs and the
+literal dot segments `.` and `..` are rejected locally. Other dot-containing IDs
+(including `...`) remain valid; percent-looking text such as `%2e` is escaped
+once as `%252e`, without decoding. Query values are encoded separately.
+
 Version 0.5 adds optional `LifecyclePaymentResponse::description` for authenticated
 payment readback. When upgrading from 0.4, add `description: None` to existing
 response struct literals. Missing or null descriptions deserialize as `None`.
@@ -100,6 +113,20 @@ https://docs.asaas.com/docs/refunds (reviewed 2026-09-18).
 Fixtures use synthetic identifiers and no provider credentials or external calls.
 
 ## HTTP transport and request accounting
+
+JSON responses have a local SDK retention limit of 10 MiB (10 * 1024 * 1024
+bytes), for successful responses and provider errors in ordinary and lifecycle
+methods. This is an SDK resource limit, not a documented Asaas maximum. Declared
+lengths allow early rejection; streamed bytes enforce the same limit when a
+length is absent or unreliable. Oversized bodies produce a fixed diagnostic,
+without retaining or parsing a truncated prefix. JSON bodies must be valid UTF-8.
+
+A body size/read failure retains the received HTTP status and rate-limit headers
+in `Error::RequestFailed` or `LifecycleError::Response`; lifecycle successful
+response failures also include a local I/O decode error. A received 2xx with an
+unreadable or oversized mutation response is still a failure to observe the
+result. Reconcile it before deciding whether to retry. The SDK does not replay
+the mutation.
 
 Installment PDF downloads are limited to 10 MiB, including responses without a
 Content-Length header and provider error bodies. Successful downloads must have
