@@ -1,34 +1,30 @@
 use asaas::{LifecyclePaymentDiscountResponse, LifecyclePaymentResponse};
 
 #[test]
-fn fixed_discount_fixture_preserves_exact_value_and_deadline_fields() {
-    let payment: LifecyclePaymentResponse = serde_json::from_str(include_str!(
-        "fixtures/lifecycle-payment-discount-fixed.json"
-    ))
-    .unwrap();
-
-    let discount = payment.discount.unwrap();
-    assert_eq!(
-        discount.value.to_string(),
-        "9007199254740993.000000000000000001"
-    );
-    assert_eq!(discount.kind, "FIXED");
-    assert_eq!(discount.due_date_limit_days, Some(5));
-    assert_eq!(discount.limit_date.as_deref(), Some("2026-10-26"));
-}
-
-#[test]
-fn percentage_discount_fixture_preserves_exact_value_and_null_deadlines() {
-    let payment: LifecyclePaymentResponse = serde_json::from_str(include_str!(
-        "fixtures/lifecycle-payment-discount-percentage.json"
-    ))
-    .unwrap();
-
-    let discount = payment.discount.unwrap();
-    assert_eq!(discount.value.to_string(), "14.285714285714285714");
-    assert_eq!(discount.kind, "PERCENTAGE");
-    assert_eq!(discount.due_date_limit_days, None);
-    assert_eq!(discount.limit_date, None);
+fn discount_readback_preserves_exact_values_native_kind_and_optional_deadlines() {
+    for (body, value, kind, days, deadline) in [
+        (
+            include_str!("fixtures/lifecycle-payment-discount-fixed.json"),
+            "9007199254740993.000000000000000001",
+            "FIXED",
+            Some(5),
+            Some("2026-10-26"),
+        ),
+        (
+            include_str!("fixtures/lifecycle-payment-discount-percentage.json"),
+            "14.285714285714285714",
+            "PERCENTAGE",
+            None,
+            None,
+        ),
+    ] {
+        let payment: LifecyclePaymentResponse = serde_json::from_str(body).unwrap();
+        let discount = payment.discount.unwrap();
+        assert_eq!(discount.value.to_string(), value);
+        assert_eq!(discount.kind, kind);
+        assert_eq!(discount.due_date_limit_days, days);
+        assert_eq!(discount.limit_date.as_deref(), deadline);
+    }
 }
 
 #[test]

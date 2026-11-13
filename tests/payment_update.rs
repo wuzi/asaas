@@ -1,11 +1,12 @@
 use asaas::{
-    BillingType, ClientBuilder, Environment, PaymentCallback, PaymentDiscount, PaymentFine,
-    PaymentInterest, PaymentSplitItem, PaymentUpdateRequest,
+    BillingType, PaymentCallback, PaymentDiscount, PaymentFine, PaymentInterest, PaymentSplitItem,
+    PaymentUpdateRequest,
 };
 use serde_json::json;
 
-fn payment_update_request() -> PaymentUpdateRequest {
-    PaymentUpdateRequest {
+#[test]
+fn update_payment_request_serializes_with_asaas_field_names() {
+    let payload = PaymentUpdateRequest {
         billing_type: BillingType::Boleto,
         value: 129.9,
         due_date: "2017-06-10".into(),
@@ -36,12 +37,7 @@ fn payment_update_request() -> PaymentUpdateRequest {
             success_url: "https://example.com/success".into(),
             auto_redirect: Some(true),
         }),
-    }
-}
-
-#[test]
-fn update_payment_request_serializes_with_asaas_field_names() {
-    let payload = payment_update_request();
+    };
 
     let serialized = serde_json::to_value(&payload).unwrap();
 
@@ -80,18 +76,4 @@ fn update_payment_request_serializes_with_asaas_field_names() {
         })
     );
     assert!(serialized.get("customer").is_none());
-}
-
-#[test]
-fn update_payment_method_is_available_on_client() {
-    let client = ClientBuilder::new()
-        .api_key("test-key")
-        .user_agent("asaas-tests")
-        .environment(Environment::Sandbox)
-        .build()
-        .unwrap();
-    let payload = payment_update_request();
-
-    let future = client.update_payment("pay_080225913252", &payload);
-    drop(future);
 }

@@ -106,12 +106,6 @@ billing type remain native strings so new provider values deserialize safely.
 `Client::get_wallets()` uses `GET /v3/wallets/` to identify the authenticated account.
 Consumers must reject ambiguous wallet lists and verify requested payment IDs.
 
-The loopback TLS tests in `tests/observation.rs` exercise these documented schemas:
-https://docs.asaas.com/reference/recuperar-uma-unica-cobranca and
-https://docs.asaas.com/reference/recuperar-walletid and
-https://docs.asaas.com/docs/refunds (reviewed 2026-09-18).
-Fixtures use synthetic identifiers and no provider credentials or external calls.
-
 ## HTTP transport and request accounting
 
 JSON responses have a local SDK retention limit of 10 MiB (10 * 1024 * 1024
